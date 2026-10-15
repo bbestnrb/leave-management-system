@@ -890,12 +890,57 @@ async function loadHR(){
         </div>
       `;
 
+      const filteredBalances = getHrFilteredBalances();
+      const anomalyRows = filteredRows.map(row => {
+        const balance = filteredBalances.find(item =>
+          Number(item.EMPLOYEE_ID) === Number(row.EMPLOYEE_ID) &&
+          normalizeLeaveText(item.LEAVE_TYPE_NAME) === normalizeLeaveText(row.LEAVE_TYPE_NAME)
+        );
+        const days = Number(row.LEAVE_DAYS);
+        const leaveType = normalizeLeaveText(row.LEAVE_TYPE_NAME || "");
+        const reasons = [];
+
+        if (leaveType.includes("ลาป่วย") && days > 3) {
+          reasons.push(`ยื่น ${days} วัน เกินเกณฑ์ตรวจสอบ 3 วันสำหรับลาป่วย`);
+        }
+        if (balance && days > Number(balance.ENTITLED_DAYS)) {
+          reasons.push(`ยื่น ${days} วัน เกินสิทธิ์รายปี ${balance.ENTITLED_DAYS} วันสำหรับ${leaveType}`);
+        }
+        if (String(row.STATUS).startsWith("PENDING") &&
+            balance &&
+            days > Number(balance.REMAINING_DAYS)) {
+          reasons.push(`ยื่น ${days} วัน เกินวันลาคงเหลือ ${balance.REMAINING_DAYS} วันสำหรับ${leaveType}`);
+        }
+
+        return reasons.length ? { ...row, anomalyReasons: reasons } : null;
+      }).filter(Boolean);
+      document.getElementById("hrAnomalyList").innerHTML = anomalyRows.length
+        ? anomalyRows.map(row => {
+          const employee = `${row.EMPLOYEE_CODE || ""} ${row.FIRST_NAME || ""} ${row.LAST_NAME || ""}`.trim();
+          const days = Number(row.LEAVE_DAYS);
+          const rejectionReason = row.REJECTION_REASON
+            ? `<div class="hr-anomaly-detail">เหตุผลที่ไม่อนุมัติ: ${escapeHtml(row.REJECTION_REASON)}</div>`
+            : "";
+          return `
+            <article class="hr-anomaly-item">
+              <div class="hr-anomaly-heading">
+                <strong>${escapeHtml(row.REQUEST_NO || "-")}</strong>
+                <span class="hr-anomaly-badge">เกินเกณฑ์ตรวจสอบ</span>
+              </div>
+              <div class="hr-anomaly-detail">${escapeHtml(employee)} · ${escapeHtml(row.LEAVE_TYPE_NAME)} · ${days} วัน · ${fmtDate(row.START_DATE)} - ${fmtDate(row.END_DATE)}</div>
+              <div class="hr-anomaly-detail">เงื่อนไขตรวจสอบ: ${row.anomalyReasons.map(escapeHtml).join(" · ")}</div>
+              ${rejectionReason}
+              <div class="hr-anomaly-status">สถานะ: ${statusBadge(row.STATUS)}</div>
+            </article>
+          `;
+        }).join("")
+        : "<div class='notice'>ไม่พบรายการลาเกินเงื่อนไขสำหรับตัวกรองนี้</div>";
+
       renderHrChart(filteredRows);
       document.getElementById("hrTable").innerHTML = `<table><thead><tr><th>เลขที่</th><th>พนักงาน</th><th>ประเภท</th><th>วันที่</th><th>หมายเหตุ</th><th>สถานะ</th></tr></thead><tbody>
         ${filteredRows.map(r => `<tr><td>${r.REQUEST_NO}</td><td>${r.EMPLOYEE_CODE} ${r.FIRST_NAME} ${r.LAST_NAME}</td><td>${r.LEAVE_TYPE_NAME}</td><td>${fmtDate(r.START_DATE)} - ${fmtDate(r.END_DATE)}</td><td>${r.REASON ? escapeHtml(r.REASON) : "-"}</td><td>${statusBadge(r.STATUS)}</td></tr>`).join("")}
       </tbody></table>`;
 
-      const filteredBalances = getHrFilteredBalances();
       document.getElementById("hrBalanceTable").innerHTML = filteredBalances.length
         ? `<table><thead><tr><th>พนักงาน</th><th>แผนก</th><th>ประเภทการลา</th><th>สิทธิ์ทั้งหมด</th><th>ใช้ไป</th><th>คงเหลือ</th></tr></thead><tbody>
           ${filteredBalances.map(row => `<tr><td>${row.EMPLOYEE_CODE} ${row.FIRST_NAME} ${row.LAST_NAME}</td><td>${row.DEPARTMENT_ID ?? "-"}</td><td>${row.LEAVE_TYPE_NAME}</td><td>${row.ENTITLED_DAYS}</td><td>${row.USED_DAYS}</td><td><strong>${row.REMAINING_DAYS}</strong></td></tr>`).join("")}

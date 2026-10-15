@@ -698,37 +698,6 @@ app.post("/api/approvals/:requestId", async (req, res) => {
       return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการกับใบลานี้" });
     }
 
-    if (action === "APPROVED" && level === 2) {
-      const balanceResult = await conn.execute(`
-        SELECT remaining_days
-        FROM leave_balances
-        WHERE employee_id = :employeeId
-          AND leave_type_id = :leaveTypeId
-          AND leave_year = EXTRACT(YEAR FROM SYSDATE)
-        FOR UPDATE
-      `, {
-        employeeId: lr.EMPLOYEE_ID,
-        leaveTypeId: lr.LEAVE_TYPE_ID
-      }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
-
-      const balance = balanceResult.rows[0];
-      if (!balance) {
-        await conn.rollback();
-        return res.status(400).json({
-          message: "อนุมัติไม่ได้: ไม่พบยอดวันลาคงเหลือสำหรับประเภทการลาและปีปัจจุบัน กรุณาตรวจสอบข้อมูลวันลา"
-        });
-      }
-
-      const remainingDays = Number(balance.REMAINING_DAYS);
-      const requestedDays = Number(lr.LEAVE_DAYS);
-      if (requestedDays > remainingDays) {
-        await conn.rollback();
-        return res.status(400).json({
-          message: `อนุมัติไม่ได้: วันลาคงเหลือ ${remainingDays} วัน แต่ใบลานี้ขอ ${requestedDays} วัน`
-        });
-      }
-    }
-
    await conn.execute(`
   INSERT INTO leave_approvals (
     leave_request_id,

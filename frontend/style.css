@@ -817,6 +817,15 @@ body:not(.login-page) #toast{background:#30483d!important;color:#f6faf6!importan
 .primary-btn:hover{background:#345f4d;box-shadow:0 8px 18px rgba(47,91,69,.18)}
 .error-text{color:#ad6258}
 
+.hr-anomaly-list{display:grid;gap:12px}
+.hr-anomaly-note{margin:-4px 0 14px;padding:12px 14px;border:1px solid #ead9b8;border-radius:9px;background:#f8f0df;color:#806743;font-size:12px}
+.hr-anomaly-item{padding:14px 15px;border:1px solid #ecd7d0;border-radius:12px;background:#fff8f6}
+.hr-anomaly-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;color:#45352a}
+.hr-anomaly-badge{flex:none;padding:6px 10px;border-radius:999px;background:#f8e8e3;color:#a5483d;font-size:11px;font-weight:700}
+.hr-anomaly-detail{margin-top:5px;color:#746456;font-size:12px;line-height:1.6}
+.hr-anomaly-status{display:flex;align-items:center;gap:7px;margin-top:9px;color:#887867;font-size:12px}
+@media(max-width:600px){.hr-anomaly-heading{align-items:flex-start;flex-direction:column;gap:6px}}
+
 @media(prefers-reduced-motion:reduce){
   .login-page,.login-page::before,.login-page::after,.login-page *,
   .login-page *::before,.login-page *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
