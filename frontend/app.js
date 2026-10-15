@@ -83,7 +83,6 @@ function setupNav(){
     html += `
       <button onclick="showPage('leave')">📝 <span>ใบลาของฉัน</span></button>
       <button onclick="showPage('balance')">📅 <span>วันลาคงเหลือ</span></button>
-      <button onclick="showPage('history')">📋 <span>ประวัติการลา</span></button>
     `;
   }
   if(user.ROLE === "SUPERVISOR" || user.ROLE === "DEPARTMENT_MANAGER"){
@@ -551,15 +550,11 @@ async function submitCancelLeave(event){
 }
 
 let hrDataCache = null;
-let hrFilters = { department: "ALL", employee: "ALL" };
+let hrFilters = { employee: "ALL" };
 
 function getHrFilteredRows() {
   if (!hrDataCache) return [];
   let rows = [...hrDataCache.rows];
-
-  if (hrFilters.department !== "ALL") {
-    rows = rows.filter(row => Number(row.DEPARTMENT_ID) === Number(hrFilters.department));
-  }
 
   if (hrFilters.employee !== "ALL") {
     rows = rows.filter(row => Number(row.EMPLOYEE_ID) === Number(hrFilters.employee));
@@ -572,10 +567,6 @@ function getHrFilteredBalances() {
   if (!hrDataCache) return [];
   let rows = [...hrDataCache.balances];
 
-  if (hrFilters.department !== "ALL") {
-    rows = rows.filter(row => Number(row.DEPARTMENT_ID) === Number(hrFilters.department));
-  }
-
   if (hrFilters.employee !== "ALL") {
     rows = rows.filter(row => Number(row.EMPLOYEE_ID) === Number(hrFilters.employee));
   }
@@ -584,26 +575,14 @@ function getHrFilteredBalances() {
 }
 
 function populateHrFilters() {
-  const departmentSelect = document.getElementById("hrDepartmentFilter");
   const employeeSelect = document.getElementById("hrEmployeeFilter");
-  if (!departmentSelect || !employeeSelect || !hrDataCache) return;
-
-  const departments = [...new Set(hrDataCache.employees
-    .map(emp => Number(emp.DEPARTMENT_ID))
-    .filter(value => Number.isFinite(value)))].sort((a, b) => a - b);
+  if (!employeeSelect || !hrDataCache) return;
 
   const employees = [...hrDataCache.employees].sort((a, b) => {
     const nameA = `${a.FIRST_NAME || ""} ${a.LAST_NAME || ""}`.trim();
     const nameB = `${b.FIRST_NAME || ""} ${b.LAST_NAME || ""}`.trim();
     return nameA.localeCompare(nameB, "th");
   });
-
-  const departmentOptions = ["<option value='ALL'>ทั้งหมด</option>"];
-  departments.forEach(dep => {
-    departmentOptions.push(`<option value="${dep}">แผนก ${dep}</option>`);
-  });
-  departmentSelect.innerHTML = departmentOptions.join("");
-  departmentSelect.value = hrFilters.department;
 
   const employeeOptions = ["<option value='ALL'>ทั้งหมด</option>"];
   employees.forEach(emp => {
@@ -642,7 +621,6 @@ function exportHrCsv(rows, filename = "hr_leave_report.csv") {
 
 async function exportHrExcel(){
   const params = new URLSearchParams({
-    department: hrFilters.department,
     employee: hrFilters.employee
   });
   try{
@@ -948,13 +926,7 @@ async function loadHR(){
         : "<div class='notice'>ไม่พบข้อมูลวันลาคงเหลือสำหรับตัวกรองนี้</div>";
     };
 
-    const departmentFilter = document.getElementById("hrDepartmentFilter");
     const employeeFilter = document.getElementById("hrEmployeeFilter");
-
-    departmentFilter.addEventListener("change", (e) => {
-      hrFilters.department = e.target.value;
-      render();
-    });
 
     employeeFilter.addEventListener("change", (e) => {
       hrFilters.employee = e.target.value;
